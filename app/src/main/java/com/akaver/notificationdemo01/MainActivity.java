@@ -16,6 +16,7 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.RemoteViews;
 import android.widget.TextView;
 
 import java.util.Date;
@@ -40,12 +41,14 @@ public class MainActivity extends AppCompatActivity {
         mBroadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                textViewBroadcast.setText((new Date()).toString());
+                textViewBroadcast.setText(intent.toString()+" "+(new Date()).toString());
             }
         };
 
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("notification-broadcast");
+        intentFilter.addAction("notification-broadcast-addwaypoint");
+        intentFilter.addAction("notification-broadcast-resettripmeter");
         registerReceiver(mBroadcastReceiver, intentFilter);
 
     }
@@ -65,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onDestroy(){
+        unregisterReceiver(mBroadcastReceiver);
+        super.onDestroy();
+    }
 
     public void buttonSimpleNotification(View view) {
         NotificationCompat.Builder mBuilder =
@@ -204,7 +212,52 @@ public class MainActivity extends AppCompatActivity {
                         .addAction(R.drawable.ic_location_on_white_24dp_small,"AddWP",mNotifyPendingIntent)
                         .setContentIntent(PendingIntent.getActivity(this, 0, new Intent(),0));
 
-        mNotificationManager.notify(2, mBuilder.build());
+        mNotificationManager.notify(4, mBuilder.build());
     }
 
+    public void buttonNotificationCustomLayout(View view){
+
+        // get the view layout
+        RemoteViews remoteView = new RemoteViews(
+                getPackageName(), R.layout.notification);
+
+        // define intents
+        PendingIntent pIntentAddWaypoint = PendingIntent.getBroadcast(
+                this,
+                0,
+                new Intent("notification-broadcast-addwaypoint"),
+                0
+        );
+
+        PendingIntent pIntentResetTripmeter = PendingIntent.getBroadcast(
+                this,
+                0,
+                new Intent("notification-broadcast-resettripmeter"),
+                0
+        );
+
+        // bring back already running activity
+        // in manifest set android:launchMode="singleTop"
+        PendingIntent pIntentOpenActivity = PendingIntent.getActivity(
+                this,
+                0,
+                new Intent(this, MainActivity.class),
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        // attach events
+        remoteView.setOnClickPendingIntent(R.id.buttonAddWayPoint, pIntentAddWaypoint);
+        remoteView.setOnClickPendingIntent(R.id.buttonResetTripmeter, pIntentResetTripmeter);
+        remoteView.setOnClickPendingIntent(R.id.buttonOpenActivity, pIntentOpenActivity);
+
+        // build notification
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setContent(remoteView)
+                        .setSmallIcon(R.drawable.ic_my_location_white_48dp);
+
+        // notify
+        mNotificationManager.notify(4, mBuilder.build());
+
+    }
 }
